@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Exposure Assessment - {{ assessment.job_title or 'N/A' }}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @media print {
+    @page { size: A4; margin: 1.5cm; }
+    body { font-size: 10pt; }
+    .no-print { display: none !important; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid; }
+  }
+
+  @media screen {
+    body {
+      background: #f1f5f9;
+      padding: 2rem 1rem;
+    }
+    .print-container {
+      max-width: 210mm;
+      margin: 0 auto;
+      background: white;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      border-radius: 0.75rem;
+      padding: 2rem;
+    }
+  }
+
+  body {
+    font-family: 'Inter', 'Helvetica', 'Arial', sans-serif;
+    color: #1e293b;
+    line-height: 1.6;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.75rem;
+  }
+
+  th, td {
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+  }
+
+  td {
+    font-size: 0.8125rem;
+  }
+
+  .risk-high td { background: #fef2f2; }
+  .risk-mid td { background: #fffbeb; }
+  .risk-low td { background: #f0fdf4; }
+
+  .desc-cell {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  .score-low {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .score-mid {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .score-high {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .score-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.75rem;
+  }
+</style>
+</head>
+<body>
+
+<div class="print-container">
+
+  <div class="no-print flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+    <a href="{{ url_for('main.index') }}" class="text-sm text-slate-500 hover:text-slate-700">&larr; Back</a>
+    <button onclick="window.print()"
+            class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+
+  <h1 class="text-2xl font-bold text-slate-900 mb-1">Career AI Exposure Assessment</h1>
+
+  <p class="text-xs text-slate-500 mb-6 pb-4 border-b border-slate-200">
+    <strong>Job Title:</strong> {{ assessment.job_title or 'N/A' }} &nbsp;&middot;&nbsp;
+    <strong>Industry:</strong> {{ assessment.industry or 'N/A' }} &nbsp;&middot;&nbsp;
+    <strong>Experience:</strong> {{ assessment.years_exp or 0 }} yrs &nbsp;&middot;&nbsp;
+    <strong>Completed:</strong> {{ assessment.completed_at.strftime('%b %d, %Y') if assessment.completed_at else 'N/A' }}
+  </p>
+
+  {% set tasks = assessment.tasks.all() %}
+  {% set scored = tasks | selectattr('risk_score', '!=', none) | list %}
+
+  {% if scored %}
+    {% set total = namespace(val=0) %}
+    {% for t in scored %}{% set total.val = total.val + t.risk_score %}{% endfor %}
+    {% set avg = total.val / (scored | length) %}
+    <div class="mb-6 p-4 rounded-lg text-center
+      {% if avg < 4 %}bg-green-50 border border-green-200{% elif avg < 7 %}bg-amber-50 border border-amber-200{% else %}bg-red-50 border border-red-200{% endif %}">
+      <span class="text-sm text-slate-600 font-medium">Average Risk Score:</span>
+      <span class="text-3xl font-bold ml-2
+        {% if avg < 4 %}text-green-700{% elif avg < 7 %}text-amber-600{% else %}text-red-600{% endif %}">
+        {{ '%.1f'|format(avg) }}
+      </span>
+      <span class="text-sm text-slate-500 ml-1">/ 10</span>
+    </div>
+  {% endif %}
+
+  <h2 class="text-lg font-bold text-slate-900 mb-1">Task Risk Scores</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 3rem;">Score</th>
+        <th>Task</th>
+        <th style="width: 6rem;">Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in scored %}
+      {% if task.risk_score < 4 %}{% set sclass = 'score-low' %}
+      {% elif task.risk_score < 7 %}{% set sclass = 'score-mid' %}
+      {% else %}{% set sclass = 'score-high' %}{% endif %}
+      <tr class="{% if task.risk_score >= 7 %}risk-high{% elif task.risk_score >= 4 %}risk-mid{% else %}risk-low{% endif %}">
+        <td class="align-middle">
+          <span class="score-circle {{ sclass }}">
+            {{ '%.0f'|format(task.risk_score) }}
+          </span>
+        </td>
+        <td class="desc-cell">
+          <span class="font-medium text-slate-900">{{ task.description }}</span>
+          {% if task.explanation %}
+            <br><span class="text-slate-500 text-xs">{{ task.explanation }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if task.category %}
+            <span class="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded">{{ task.category }}</span>
+          {% else %}
+            <span class="text-slate-300 text-xs">&mdash;</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if tasks | length != scored | length %}
+    <p class="text-xs text-slate-400 mt-2">* {{ tasks | length - scored | length }} task(s) pending scoring.</p>
+  {% endif %}
+
+  <h2 class="text-lg font-bold text-slate-900 mt-8 mb-1">Upskilling Roadmap</h2>
+
+  {% set items = assessment.roadmap_items.all() %}
+  {% if items %}
+  <table style="table-layout: fixed;">
+    <colgroup>
+      <col style="width: 1.75rem;">
+      <col>
+      <col style="width: 5rem;">
+      <col style="width: 5.5rem;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Skill</th>
+        <th>Timeline</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="text-center font-bold text-slate-700 align-middle">{{ item.priority }}</td>
+        <td class="desc-cell">
+          <span class="font-medium text-slate-900">{{ item.skill_name }}</span>
+          {% if item.description %}
+            <br><span class="text-slate-500 text-xs">{{ item.description }}</span>
+          {% endif %}
+          {% if item.resources %}
+            <br><span class="text-blue-600 text-xs">Resources: {{ item.resources | join(', ') }}</span>
+          {% endif %}
+        </td>
+        <td class="align-middle">
+          {% if item.timeline %}
+            <span class="inline-block px-2 py-0.5 text-xs font-medium rounded
+              {% if item.timeline == 'short' %}bg-green-100 text-green-700
+              {% elif item.timeline == 'medium' %}bg-blue-100 text-blue-700
+              {% else %}bg-purple-100 text-purple-700{% endif %}">
+              {{ item.timeline }}
+            </span>
+          {% else %}
+            <span class="text-slate-300 text-xs">&mdash;</span>
+          {% endif %}
+        </td>
+        <td class="align-middle">
+          {% if item.category %}
+            <span class="inline-block px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded">{{ item.category }}</span>
+          {% else %}
+            <span class="text-slate-300 text-xs">&mdash;</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p class="text-slate-400 text-sm">No roadmap items available.</p>
+  {% endif %}
+
+  <div class="no-print mt-8 pt-4 border-t border-slate-200">
+    <p class="text-xs text-slate-400">Use Ctrl+P (Cmd+P on Mac) and choose "Save as PDF" to export.</p>
+  </div>
+</div>
+
+</body>
+</html>

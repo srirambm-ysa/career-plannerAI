@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% macro time_ago(dt) %}
+{% set delta = (datetime.utcnow() - dt) %}
+{% if delta.days > 365 %}{{ (delta.days / 365) | int }}y ago
+{% elif delta.days > 30 %}{{ (delta.days / 30) | int }}mo ago
+{% elif delta.days > 0 %}{{ delta.days }}d ago
+{% elif delta.seconds >= 3600 %}{{ (delta.seconds / 3600) | int }}h ago
+{% elif delta.seconds >= 60 %}{{ (delta.seconds / 60) | int }}m ago
+{% else %}just now{% endif %}
+{% endmacro %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Assessments</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage all candidates screened by you.</p>
+        </div>
+        <a href="{{ url_for('assessment.wizard_step1') }}"
+           class="px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
+            New Assessment
+        </a>
+    </div>
+
+    <form method="GET" class="mb-6 flex items-center gap-3 flex-wrap">
+        <div class="flex-1 min-w-[160px]">
+            <label for="industry" class="sr-only">Industry</label>
+            <input type="text" id="industry" name="industry" value="{{ search_industry }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                   placeholder="Filter by Industry...">
+        </div>
+        <div class="flex-1 min-w-[160px]">
+            <label for="job_title" class="sr-only">Job Title</label>
+            <input type="text" id="job_title" name="job_title" value="{{ search_job_title }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                   placeholder="Filter by Job Title...">
+        </div>
+        <select name="sort" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest</option>
+            <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest</option>
+            <option value="industry" {% if sort == 'industry' %}selected{% endif %}>Industry A-Z</option>
+        </select>
+        <button type="submit"
+                class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            Search
+        </button>
+        {% if search_industry or search_job_title or sort != 'newest' %}
+        <a href="{{ url_for('main.dashboard') }}"
+           class="px-4 py-2 border border-slate-300 text-slate-600 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-colors">
+            Clear
+        </a>
+        {% endif %}
+    </form>
+
+    {% if assessments %}
+    <div class="overflow-x-auto">
+        <div class="space-y-3 min-w-[480px]">
+            {% for assessment in assessments %}
+            <div class="bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-300 hover:shadow-sm transition-all group">
+                <div class="flex items-center justify-between">
+                    <a href="{{ url_for('assessment.view_assessment', assessment_id=assessment.id) }}" class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-slate-900 truncate">{{ assessment.job_title or '(no title)' }}</h3>
+                        <p class="text-sm text-slate-500">{{ assessment.industry }} &middot; {{ assessment.years_exp or 0 }} yrs exp</p>
+                    </a>
+                    <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                        <a href="{{ url_for('assessment.download_pdf', assessment_id=assessment.id) }}"
+                           class="text-slate-400 hover:text-emerald-600 transition-colors" title="Export PDF">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        </a>
+                        <form method="POST" action="{{ url_for('assessment.delete_assessment', assessment_id=assessment.id) }}">
+                            <button type="button" data-confirm="Delete this assessment for {{ assessment.job_title or '(no title)' }}? This cannot be undone."
+                                    class="text-slate-400 hover:text-red-500 transition-colors" title="Delete assessment">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </form>
+                        <div class="text-right text-sm">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-medium
+                                {% if assessment.status == 'completed' %}bg-green-100 text-green-700
+                                {% else %}bg-amber-100 text-amber-700{% endif %}">
+                                {{ assessment.status }}
+                            </span>
+                            <p class="text-slate-400 mt-1" title="{{ assessment.created_at.strftime('%b %d, %Y %H:%M') }}">{{ time_ago(assessment.created_at) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl border border-slate-200 p-12 text-center">
+        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-900 mt-4">
+            {% if search_industry or search_job_title %}
+            No assessments match your search
+            {% else %}
+            No assessments yet
+            {% endif %}
+        </h3>
+        <p class="text-sm text-slate-500 mt-1">
+            {% if search_industry or search_job_title %}
+            Try different search terms or <a href="{{ url_for('main.dashboard') }}" class="text-blue-600 underline">clear filters</a>.
+            {% else %}
+            Start your first career AI exposure evaluation.
+            {% endif %}
+        </p>
+        <a href="{{ url_for('assessment.wizard_step1') }}"
+           class="inline-block mt-6 px-6 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+            Start Assessment
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

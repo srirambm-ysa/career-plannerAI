@@ -1,0 +1,38 @@
+{% set path_parts = request.path.split('/') %}
+{% set current_step_num = path_parts[-1] | int if path_parts[-1].isdigit() else 1 %}
+{% set active_step = current_step_num %}
+
+<div class="w-full">
+    <div class="flex items-center justify-between">
+        {% for step in [
+            {'num': 1, 'label': 'Industry'},
+            {'num': 2, 'label': 'Profile & Tasks'},
+            {'num': 3, 'label': 'Results'},
+            {'num': 4, 'label': 'Roadmap'},
+        ] %}
+        <div class="flex items-center {% if not loop.last %}flex-1{% endif %}">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
+                    {% if step.num < active_step %}bg-blue-600 text-white
+                    {% elif step.num == active_step %}bg-blue-600 text-white ring-4 ring-blue-100
+                    {% else %}bg-slate-100 text-slate-400{% endif %}">
+                    {% if step.num < active_step %}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    {% else %}
+                    {{ step.num }}
+                    {% endif %}
+                </div>
+                <span class="text-sm font-medium hidden sm:block
+                    {% if step.num <= active_step %}text-slate-900{% else %}text-slate-400{% endif %}">
+                    {{ step.label }}
+                </span>
+            </div>
+            {% if not loop.last %}
+            <div class="flex-1 h-0.5 mx-4 transition-colors duration-300
+                {% if step.num < active_step %}bg-blue-600{% else %}bg-slate-200{% endif %}">
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>

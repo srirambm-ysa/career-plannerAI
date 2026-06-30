@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}CareerAI Planner -- Evaluate Your AI Exposure{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto text-center py-16 sm:py-24">
+    <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 tracking-tight">
+        What's Your Career's<br>
+        <span class="text-blue-600">AI Exposure?</span>
+    </h1>
+    <p class="mt-6 text-lg text-slate-600 leading-relaxed">
+        A frictionless, non-alarmist tool for professionals. Evaluate how AI and automation
+        affect your specific work -- at the task level -- and get a personalized strategic
+        upskilling roadmap.
+    </p>
+
+    <div class="mt-12 grid grid-cols-1 sm:grid-cols-4 gap-4 text-left">
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg mb-3">1</div>
+            <h3 class="font-semibold text-slate-900">Profile</h3>
+            <p class="text-sm text-slate-500 mt-1">Tell us your role, industry, and experience level.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg mb-3">2</div>
+            <h3 class="font-semibold text-slate-900">Tasks</h3>
+            <p class="text-sm text-slate-500 mt-1">Review AI-generated tasks specific to your role.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg mb-3">3</div>
+            <h3 class="font-semibold text-slate-900">Evaluate</h3>
+            <p class="text-sm text-slate-500 mt-1">See each task's AI exposure score with explanations.</p>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-lg mb-3">4</div>
+            <h3 class="font-semibold text-slate-900">Roadmap</h3>
+            <p class="text-sm text-slate-500 mt-1">Get a ranked upskilling plan with resources.</p>
+        </div>
+    </div>
+
+    <div class="mt-10 flex items-center justify-center gap-4">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('assessment.wizard_step1') }}"
+               class="inline-flex items-center px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors">
+                Start Your Assessment
+                <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.register') }}"
+               class="inline-flex items-center px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors">
+                Get Started Free
+                <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </a>
+            <a href="{{ url_for('auth.login') }}"
+               class="inline-flex items-center px-6 py-3 rounded-lg border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors">
+                Sign In
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

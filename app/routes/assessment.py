@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.assessment import Assessment, Task, RoadmapItem
 from app.services.ai_service import generate_tasks, score_tasks, generate_roadmap
+from app.services.salary_service import fetch_salary
 
 assessment_bp = Blueprint('assessment', __name__, url_prefix='/assessment')
 
@@ -52,23 +53,31 @@ def wizard():
 @assessment_bp.route('/step/1', methods=['GET', 'POST'])
 @login_required
 def wizard_step1():
+    from app.services.salary_service import COUNTRY_LIST
     assessment = _create_or_get_assessment()
 
     if request.method == 'POST':
         industry = request.form.get('industry', '').strip()
+        country = request.form.get('country', '').strip()
 
         if not industry:
             flash('Please select an industry.', 'danger')
-            return render_template('assessment/step1.html', assessment=assessment, industries=INDUSTRIES)
+            return render_template('assessment/step1.html', assessment=assessment, industries=INDUSTRIES, countries=COUNTRY_LIST)
+
+        if not country:
+            flash('Please select a country.', 'danger')
+            return render_template('assessment/step1.html', assessment=assessment, industries=INDUSTRIES, countries=COUNTRY_LIST)
 
         assessment.industry = industry
+        assessment.country = country
         assessment.step = 2
         current_user.last_industry = industry
+        current_user.last_country = country
         db.session.commit()
 
         return redirect(url_for('assessment.wizard_step2'))
 
-    return render_template('assessment/step1.html', assessment=assessment, industries=INDUSTRIES)
+    return render_template('assessment/step1.html', assessment=assessment, industries=INDUSTRIES, countries=COUNTRY_LIST)
 
 
 @assessment_bp.route('/step/2', methods=['GET', 'POST'])
@@ -231,7 +240,18 @@ def wizard_step3():
             assessment.completed_at = datetime.utcnow()
             db.session.commit()
 
-        return redirect(url_for('assessment.wizard_step4'))
+        salary_result = fetch_salary(
+            assessment.job_title,
+            assessment.industry,
+            assessment.years_exp,
+            assessment.country
+        )
+        assessment.salary_range = salary_result.get('range', '')
+        assessment.salary_source = salary_result.get('source', '')
+        assessment.salary_confidence = salary_result.get('confidence', '')
+        db.session.commit()
+
+        return redirect(url_for('assessment.summary', assessment_id=assessment.id))
 
     return render_template('assessment/step3.html', assessment=assessment, tasks=tasks)
 
@@ -242,7 +262,28 @@ def wizard_step4():
     assessment = _get_active_assessment()
     if not assessment or assessment.step < 4:
         return redirect(url_for('assessment.wizard_step1'))
-    return render_template('assessment/step4.html', assessment=assessment)
+    return redirect(url_for('assessment.summary', assessment_id=assessment.id))
+
+
+@assessment_bp.route('/summary/<int:assessment_id>')
+@login_required
+def summary(assessment_id):
+    assessment = Assessment.query.filter_by(
+        id=assessment_id, user_id=current_user.id
+    ).first_or_404()
+    tasks = Task.query.filter_by(assessment_id=assessment.id).order_by(
+        Task.risk_score.desc().nullslast()
+    ).all()
+    roadmap_items = assessment.roadmap_items.order_by(RoadmapItem.priority).all()
+    preview_items = roadmap_items[:5]
+
+    avg_risk = None
+    scored = [t for t in tasks if t.risk_score is not None]
+    if scored:
+        avg_risk = sum(t.risk_score for t in scored) / len(scored)
+
+    return render_template('assessment/summary.html', assessment=assessment,
+                           tasks=tasks, avg_risk=avg_risk, preview_items=preview_items)
 
 
 @assessment_bp.route('/<int:assessment_id>')
@@ -251,7 +292,18 @@ def view_assessment(assessment_id):
     assessment = Assessment.query.filter_by(
         id=assessment_id, user_id=current_user.id
     ).first_or_404()
-    return render_template('assessment/step4.html', assessment=assessment)
+    tasks = Task.query.filter_by(assessment_id=assessment.id).order_by(
+        Task.risk_score.desc().nullslast()
+    ).all()
+    roadmap_items = assessment.roadmap_items.order_by(RoadmapItem.priority).all()
+
+    avg_risk = None
+    scored = [t for t in tasks if t.risk_score is not None]
+    if scored:
+        avg_risk = sum(t.risk_score for t in scored) / len(scored)
+
+    return render_template('assessment/detail.html', assessment=assessment,
+                           tasks=tasks, roadmap_items=roadmap_items, avg_risk=avg_risk)
 
 
 @assessment_bp.route('/<int:assessment_id>/pdf')
@@ -260,7 +312,12 @@ def download_pdf(assessment_id):
     assessment = Assessment.query.filter_by(
         id=assessment_id, user_id=current_user.id
     ).first_or_404()
-    return render_template('assessment/pdf.html', assessment=assessment)
+    tasks = Task.query.filter_by(assessment_id=assessment.id).order_by(
+        Task.risk_score.desc().nullslast()
+    ).all()
+    roadmap_items = assessment.roadmap_items.order_by(RoadmapItem.priority).all()
+    return render_template('assessment/pdf.html', assessment=assessment,
+                           tasks=tasks, roadmap_items=roadmap_items)
 
 
 @assessment_bp.route('/<int:assessment_id>/json')
@@ -274,8 +331,14 @@ def export_json(assessment_id):
         'job_title': assessment.job_title,
         'industry': assessment.industry,
         'years_exp': assessment.years_exp,
+        'country': assessment.country,
         'status': assessment.status,
         'completed_at': assessment.completed_at.isoformat() if assessment.completed_at else None,
+        'salary': {
+            'range': assessment.salary_range,
+            'source': assessment.salary_source,
+            'confidence': assessment.salary_confidence,
+        },
         'tasks': [{'description': t.description, 'risk_score': t.risk_score,
                     'explanation': t.explanation, 'category': t.category}
                   for t in assessment.tasks.all()],

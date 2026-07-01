@@ -45,8 +45,13 @@ def create_app(config_class=Config):
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             cols = [c['name'] for c in insp.get_columns('assessments')]
-            if 'notes' not in cols:
-                db.session.execute(db.text('ALTER TABLE assessments ADD COLUMN notes TEXT'))
+            for col in ('notes', 'country', 'salary_range', 'salary_source', 'salary_confidence'):
+                if col not in cols:
+                    db.session.execute(db.text(f'ALTER TABLE assessments ADD COLUMN {col} TEXT'))
+                    db.session.commit()
+            ucols = [c['name'] for c in insp.get_columns('users')]
+            if 'last_country' not in ucols:
+                db.session.execute(db.text('ALTER TABLE users ADD COLUMN last_country VARCHAR(100)'))
                 db.session.commit()
         except Exception:
             db.session.rollback()

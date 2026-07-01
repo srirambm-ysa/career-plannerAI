@@ -10,11 +10,15 @@ class Assessment(db.Model):
     job_title = db.Column(db.String(255), nullable=True, default='')
     industry = db.Column(db.String(255), nullable=False)
     years_exp = db.Column(db.Integer, nullable=True, default=0)
+    country = db.Column(db.String(100), nullable=True, default='US')
     step = db.Column(db.Integer, default=1)
     status = db.Column(db.String(20), default='draft')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    salary_range = db.Column(db.String(100), nullable=True)
+    salary_source = db.Column(db.String(50), nullable=True)
+    salary_confidence = db.Column(db.String(50), nullable=True)
 
     tasks = db.relationship('Task', backref='assessment', lazy='dynamic',
                             cascade='all, delete-orphan',

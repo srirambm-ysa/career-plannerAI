@@ -16,4 +16,7 @@ class Config:
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '')
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '')
 
+    ADZUNA_APP_ID = os.environ.get('ADZUNA_APP_ID', '')
+    ADZUNA_API_KEY = os.environ.get('ADZUNA_API_KEY', '')
+
     OAUTHLIB_INSECURE_TRANSPORT = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '1')

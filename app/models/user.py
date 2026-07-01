@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True)
     last_industry = db.Column(db.String(255), nullable=True)
+    last_country = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     oauth_accounts = db.relationship('OAuthAccount', backref='user', lazy='dynamic')

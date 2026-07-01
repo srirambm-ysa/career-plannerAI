@@ -117,8 +117,17 @@
     <strong>Job Title:</strong> {{ assessment.job_title or 'N/A' }} &nbsp;&middot;&nbsp;
     <strong>Industry:</strong> {{ assessment.industry or 'N/A' }} &nbsp;&middot;&nbsp;
     <strong>Experience:</strong> {{ assessment.years_exp or 0 }} yrs &nbsp;&middot;&nbsp;
+    <strong>Country:</strong> {{ assessment.country or 'US' }} &nbsp;&middot;&nbsp;
     <strong>Completed:</strong> {{ assessment.completed_at.strftime('%b %d, %Y') if assessment.completed_at else 'N/A' }}
   </p>
+
+  {% if assessment.salary_range %}
+  <div class="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200 text-center">
+    <span class="text-sm text-slate-600 font-medium">Salary Benchmark:</span>
+    <span class="text-xl font-bold text-blue-700 ml-2">{{ assessment.salary_range }}</span>
+    <span class="text-xs text-slate-500 ml-2">{{ assessment.salary_source }}</span>
+  </div>
+  {% endif %}
 
   {% set tasks = assessment.tasks.all() %}
   {% set scored = tasks | selectattr('risk_score', '!=', none) | list %}

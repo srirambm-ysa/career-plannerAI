@@ -1,3 +1,4 @@
+import json
 from flask import Flask, render_template
 from app.config import Config
 from app.extensions import db, login_manager, migrate
@@ -6,6 +7,15 @@ from app.extensions import db, login_manager, migrate
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    @app.template_filter('from_json')
+    def from_json_filter(value):
+        if not value:
+            return []
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError):
+            return []
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -45,7 +55,7 @@ def create_app(config_class=Config):
             from sqlalchemy import inspect
             insp = inspect(db.engine)
             cols = [c['name'] for c in insp.get_columns('assessments')]
-            for col in ('notes', 'country', 'salary_range', 'salary_source', 'salary_confidence'):
+            for col in ('notes', 'country', 'salary_range', 'salary_source', 'salary_confidence', 'salary_top_hirers'):
                 if col not in cols:
                     db.session.execute(db.text(f'ALTER TABLE assessments ADD COLUMN {col} TEXT'))
                     db.session.commit()

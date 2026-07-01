@@ -126,6 +126,16 @@
     <span class="text-sm text-slate-600 font-medium">Salary Benchmark:</span>
     <span class="text-xl font-bold text-blue-700 ml-2">{{ assessment.salary_range }}</span>
     <span class="text-xs text-slate-500 ml-2">{{ assessment.salary_source }}</span>
+    {% set top_hirers = assessment.salary_top_hirers %}
+    {% if top_hirers and top_hirers != '[]' %}
+    {% set hirers = top_hirers | from_json %}
+    <div class="mt-2">
+      <span class="text-xs text-slate-500">Top employers: </span>
+      {% for h in hirers %}
+      <span class="text-xs text-slate-600">{{ h.name }} ({{ h.count }}){% if not loop.last %}, {% endif %}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 

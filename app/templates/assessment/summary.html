@@ -52,6 +52,15 @@
                 <div>
                     <p class="text-lg font-bold text-slate-900">{{ assessment.salary_range }}</p>
                     <p class="text-sm text-slate-500">{{ assessment.salary_source }} &middot; {{ assessment.salary_confidence }}</p>
+                    {% set top_hirers = assessment.salary_top_hirers %}
+                    {% if top_hirers and top_hirers != '[]' %}
+                    {% set hirers = top_hirers | from_json %}
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        {% for h in hirers %}
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded">{{ h.name }} ({{ h.count }})</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

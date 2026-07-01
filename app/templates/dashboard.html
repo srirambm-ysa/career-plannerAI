@@ -60,7 +60,7 @@
                 <div class="flex items-center justify-between">
                     <a href="{{ url_for('assessment.view_assessment', assessment_id=assessment.id) }}" class="flex-1 min-w-0">
                         <h3 class="font-semibold text-slate-900 truncate">{{ assessment.job_title or '(no title)' }}</h3>
-                        <p class="text-sm text-slate-500">{{ assessment.industry }} &middot; {{ assessment.years_exp or 0 }} yrs exp</p>
+                        <p class="text-sm text-slate-500">{{ assessment.industry }} &middot; {{ assessment.country or 'US' }} &middot; {{ assessment.years_exp or 0 }} yrs exp</p>
                     </a>
                     <div class="flex items-center gap-3 flex-shrink-0 ml-4">
                         <a href="{{ url_for('assessment.download_pdf', assessment_id=assessment.id) }}"

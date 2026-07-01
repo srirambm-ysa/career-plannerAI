@@ -32,6 +32,33 @@ ADZUNA_COUNTRIES = {
     'Hungary': 'hu', 'HU': 'hu',
 }
 
+CURRENCY_MAP = {
+    'US': 'USD', 'United States': 'USD', 'USA': 'USD',
+    'UK': 'GBP', 'United Kingdom': 'GBP', 'GB': 'GBP',
+    'Canada': 'CAD', 'CA': 'CAD',
+    'Australia': 'AUD', 'AU': 'AUD',
+    'India': 'INR', 'IN': 'INR',
+    'New Zealand': 'NZD', 'NZ': 'NZD',
+    'Singapore': 'SGD', 'SG': 'SGD',
+    'South Africa': 'ZAR', 'ZA': 'ZAR',
+    'Ireland': 'EUR', 'IE': 'EUR',
+    'Netherlands': 'EUR', 'NL': 'EUR',
+    'Germany': 'EUR', 'DE': 'EUR',
+    'France': 'EUR', 'FR': 'EUR',
+    'Austria': 'EUR', 'AT': 'EUR',
+    'Switzerland': 'CHF', 'CH': 'CHF',
+    'Belgium': 'EUR', 'BE': 'EUR',
+    'Luxembourg': 'EUR', 'LU': 'EUR',
+    'Poland': 'PLN', 'PL': 'PLN',
+    'Sweden': 'SEK', 'SE': 'SEK',
+    'Denmark': 'DKK', 'DK': 'DKK',
+    'Norway': 'NOK', 'NO': 'NOK',
+    'Finland': 'EUR', 'FI': 'EUR',
+    'Czech Republic': 'CZK', 'CZ': 'CZK',
+    'Romania': 'RON', 'RO': 'RON',
+    'Hungary': 'HUF', 'HU': 'HUF',
+}
+
 COUNTRY_LIST = sorted(ADZUNA_COUNTRIES.keys(), key=lambda x: (
     0 if x in ('US', 'United States') else
     1 if x in ('UK', 'United Kingdom') else
@@ -71,6 +98,7 @@ def _fetch_adzuna_salary(job_title, country_code):
         return None
 
     salaries = []
+    company_counts = {}
     for r in results:
         s_min = r.get('salary_min')
         s_max = r.get('salary_max')
@@ -81,6 +109,11 @@ def _fetch_adzuna_salary(job_title, country_code):
         elif s_max:
             salaries.append(s_max)
 
+        company = r.get('company', {})
+        name = company.get('display_name') if company else None
+        if name:
+            company_counts[name] = company_counts.get(name, 0) + 1
+
     if not salaries:
         return None
 
@@ -90,11 +123,18 @@ def _fetch_adzuna_salary(job_title, country_code):
     currency = results[0].get('salary_currency', 'USD')
     total_count = data.get('count', len(results))
 
+    top_hirers = sorted(company_counts.items(), key=lambda x: -x[1])[:5]
+    top_hirers_list = [
+        {'name': name, 'count': count}
+        for name, count in top_hirers
+    ]
+
     return {
         'range': f'{currency} {low:,.0f} – {high:,.0f}',
         'average': f'{currency} {avg:,.0f}',
         'source': 'Adzuna',
         'confidence': f'Based on {total_count} job posting{"s" if total_count != 1 else ""}',
+        'top_hirers': top_hirers_list,
     }
 
 
@@ -102,16 +142,18 @@ SYSTEM_SALARY = """You are a labor market analyst. Given a job title, industry, 
 estimate the typical annual salary range for this role. Respond with realistic figures in the local currency.
 
 Return JSON in this format:
-{"range": "USD 80,000 – 120,000", "average": "USD 100,000", "currency": "USD", "notes": "Estimate based on typical market rates for this role."}"""
+{"range": "GBP 80,000 – 120,000", "average": "GBP 100,000", "currency": "GBP", "notes": "Estimate based on typical market rates for this role."}"""
 
 
 def _fetch_llm_salary(job_title, industry, years_exp, country):
+    currency = CURRENCY_MAP.get(country, 'USD')
     user_prompt = (
         f"Job Title: {job_title}\n"
         f"Industry: {industry}\n"
         f"Years of Experience: {years_exp}\n"
         f"Country: {country}\n\n"
-        f"Estimate the typical annual salary range for this role."
+        f"Estimate the typical annual salary range for this role "
+        f"in {currency}. Use {currency} format."
     )
     try:
         result = _call_llm(SYSTEM_SALARY, user_prompt)
@@ -120,6 +162,7 @@ def _fetch_llm_salary(job_title, industry, years_exp, country):
             'average': result.get('average', ''),
             'source': 'AI Estimated',
             'confidence': 'Estimate based on market data',
+            'top_hirers': [],
         }
     except Exception as e:
         current_app.logger.error(f'LLM salary fetch failed: {e}')
@@ -128,6 +171,7 @@ def _fetch_llm_salary(job_title, industry, years_exp, country):
             'average': 'N/A',
             'source': 'Unavailable',
             'confidence': '',
+            'top_hirers': [],
         }
 
 

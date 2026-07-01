@@ -19,6 +19,7 @@ class Assessment(db.Model):
     salary_range = db.Column(db.String(100), nullable=True)
     salary_source = db.Column(db.String(50), nullable=True)
     salary_confidence = db.Column(db.String(50), nullable=True)
+    salary_top_hirers = db.Column(db.Text, nullable=True)
 
     tasks = db.relationship('Task', backref='assessment', lazy='dynamic',
                             cascade='all, delete-orphan',

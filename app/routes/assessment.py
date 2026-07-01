@@ -1,3 +1,4 @@
+import json
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, make_response
 from flask_login import login_required, current_user
 from app.extensions import db
@@ -249,6 +250,7 @@ def wizard_step3():
         assessment.salary_range = salary_result.get('range', '')
         assessment.salary_source = salary_result.get('source', '')
         assessment.salary_confidence = salary_result.get('confidence', '')
+        assessment.salary_top_hirers = json.dumps(salary_result.get('top_hirers', []))
         db.session.commit()
 
         return redirect(url_for('assessment.summary', assessment_id=assessment.id))

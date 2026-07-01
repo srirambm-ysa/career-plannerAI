@@ -145,6 +145,16 @@ estimate the typical annual salary range for this role. Respond with realistic f
 Return JSON in this format:
 {"range": "GBP 80,000 – 120,000", "average": "GBP 100,000", "currency": "GBP", "notes": "Estimate based on typical market rates for this role."}"""
 
+SYSTEM_ADJUST_SALARY = """You are a labor market compensation analyst. Given a job title, years of experience,
+country, and a market salary baseline from job postings (all seniority levels), narrow the range to fit
+a professional with the specified years of experience.
+
+Focus on the middle 80% of the bell curve — exclude outlier roles (interns at the low end,
+C-suite at the high end). Be realistic and conservative.
+
+Return JSON in this format:
+{"range": "INR 600,000 – 1,200,000", "average": "INR 900,000", "currency": "INR", "notes": "Adjusted from market baseline for 3 yrs experience."}"""
+
 
 def _fetch_llm_salary(job_title, industry, years_exp, country):
     currency = CURRENCY_MAP.get(country, 'USD')
@@ -176,12 +186,41 @@ def _fetch_llm_salary(job_title, industry, years_exp, country):
         }
 
 
+def _adjust_salary_with_llm(job_title, years_exp, country, currency, raw_range, raw_avg):
+    user_prompt = (
+        f"Job Title: {job_title}\n"
+        f"Years of Experience: {years_exp}\n"
+        f"Country: {country}\n"
+        f"Currency: {currency}\n"
+        f"Market Baseline Range (all seniority levels): {raw_range}\n"
+        f"Market Average: {raw_avg}\n\n"
+        f"Narrow this range to fit a professional with {years_exp} years of experience. "
+        f"Focus on the middle 80% of earners, excluding outliers."
+    )
+    try:
+        result = _call_llm(SYSTEM_ADJUST_SALARY, user_prompt)
+        return result.get('range', raw_range), result.get('average', raw_avg)
+    except Exception as e:
+        current_app.logger.warning(f'LLM salary adjustment failed, using raw Adzuna data: {e}')
+        return raw_range, raw_avg
+
+
 def fetch_salary(job_title, industry, years_exp, country):
     country_code = get_adzuna_country_code(country) if country else None
 
     if country_code:
         result = _fetch_adzuna_salary(job_title, country_code, country)
         if result:
+            if years_exp and years_exp > 0:
+                adjusted_range, adjusted_avg = _adjust_salary_with_llm(
+                    job_title, years_exp, country,
+                    CURRENCY_MAP.get(country, 'USD'),
+                    result['range'], result['average']
+                )
+                if adjusted_range != result['range']:
+                    result['range'] = adjusted_range
+                    result['average'] = adjusted_avg
+                    result['confidence'] += ' · Adjusted for experience'
             return result
 
     return _fetch_llm_salary(job_title, industry, years_exp, country)

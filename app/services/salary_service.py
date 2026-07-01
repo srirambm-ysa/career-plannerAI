@@ -70,7 +70,7 @@ def get_adzuna_country_code(country_name):
     return ADZUNA_COUNTRIES.get(country_name)
 
 
-def _fetch_adzuna_salary(job_title, country_code):
+def _fetch_adzuna_salary(job_title, country_code, country_name=None):
     app_id = current_app.config.get('ADZUNA_APP_ID', '')
     api_key = current_app.config.get('ADZUNA_API_KEY', '')
     if not app_id or not api_key:
@@ -120,7 +120,8 @@ def _fetch_adzuna_salary(job_title, country_code):
     avg = sum(salaries) / len(salaries)
     low = min(salaries)
     high = max(salaries)
-    currency = results[0].get('salary_currency', 'USD')
+    api_currency = results[0].get('salary_currency', 'USD')
+    currency = CURRENCY_MAP.get(country_name, api_currency)
     total_count = data.get('count', len(results))
 
     top_hirers = sorted(company_counts.items(), key=lambda x: -x[1])[:5]
@@ -133,7 +134,7 @@ def _fetch_adzuna_salary(job_title, country_code):
         'range': f'{currency} {low:,.0f} – {high:,.0f}',
         'average': f'{currency} {avg:,.0f}',
         'source': 'Adzuna',
-        'confidence': f'Based on {total_count} job posting{"s" if total_count != 1 else ""}',
+        'confidence': f'Based on {len(results)} of {total_count} job posting{"s" if total_count != 1 else ""}',
         'top_hirers': top_hirers_list,
     }
 
@@ -179,7 +180,7 @@ def fetch_salary(job_title, industry, years_exp, country):
     country_code = get_adzuna_country_code(country) if country else None
 
     if country_code:
-        result = _fetch_adzuna_salary(job_title, country_code)
+        result = _fetch_adzuna_salary(job_title, country_code, country)
         if result:
             return result
 

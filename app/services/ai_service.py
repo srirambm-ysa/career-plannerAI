@@ -44,13 +44,16 @@ def generate_tasks(job_title, industry, years_exp):
     return _call_llm(SYSTEM_TASKS, user_prompt)
 
 
-SYSTEM_RISK = """You are an AI risk assessment expert. For each task provided,
-rate its exposure to AI automation on a scale of 1 to 10:
-1 = Impossible to automate (requires deep human judgment, empathy, creativity)
-10 = Fully automatable today (routine, rule-based, data-driven)
+SYSTEM_RISK = """You are an AI risk assessment expert. For each task provided:
+1. Rate its exposure to AI automation on a scale of 1 to 10:
+   1 = Impossible to automate (requires deep human judgment, empathy, creativity)
+   10 = Fully automatable today (routine, rule-based, data-driven)
+2. Rate the task's importance to the role on a scale of 1 to 5:
+   1 = Minor / peripheral task
+   5 = Core / mission-critical task
 Provide a brief 1-sentence explanation for each score.
 Return JSON in this format:
-{"tasks": [{"description": "...", "risk_score": 5, "explanation": "..."}]}"""
+{"tasks": [{"description": "...", "risk_score": 5, "importance": 3, "explanation": "..."}]}"""
 
 
 def score_tasks(tasks):

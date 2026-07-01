@@ -49,9 +49,14 @@
                         {% if task.explanation %}
                         <p class="text-sm text-slate-500 mt-1">{{ task.explanation }}</p>
                         {% endif %}
+                        <div class="flex items-center gap-2 mt-2">
                         {% if task.category %}
-                        <span class="inline-block mt-2 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded">{{ task.category }}</span>
+                        <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded">{{ task.category }}</span>
                         {% endif %}
+                        {% if task.weight %}
+                        <span class="px-2 py-0.5 bg-purple-50 text-purple-700 text-xs font-medium rounded">Importance: {{ '%.0f'|format(task.weight) }}/5</span>
+                        {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>

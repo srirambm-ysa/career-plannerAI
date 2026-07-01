@@ -59,6 +59,10 @@ def create_app(config_class=Config):
                 if col not in cols:
                     db.session.execute(db.text(f'ALTER TABLE assessments ADD COLUMN {col} TEXT'))
                     db.session.commit()
+            tcols = [c['name'] for c in insp.get_columns('tasks')]
+            if 'weight' not in tcols:
+                db.session.execute(db.text('ALTER TABLE tasks ADD COLUMN weight FLOAT'))
+                db.session.commit()
             ucols = [c['name'] for c in insp.get_columns('users')]
             if 'last_country' not in ucols:
                 db.session.execute(db.text('ALTER TABLE users ADD COLUMN last_country VARCHAR(100)'))

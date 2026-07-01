@@ -38,6 +38,7 @@ class Task(db.Model):
     risk_score = db.Column(db.Float, nullable=True)
     explanation = db.Column(db.Text, nullable=True)
     category = db.Column(db.String(100), nullable=True)
+    weight = db.Column(db.Float, nullable=True, default=1.0)
 
 
 class RoadmapItem(db.Model):

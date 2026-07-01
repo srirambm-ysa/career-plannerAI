@@ -121,6 +121,7 @@ def wizard_step2():
             for i, task in enumerate(tasks_list):
                 if i < len(scored):
                     task.risk_score = scored[i]['risk_score']
+                    task.weight = scored[i].get('importance', 3)
                     task.explanation = scored[i].get('explanation', '')
             assessment.step = 3
             db.session.commit()
@@ -128,6 +129,7 @@ def wizard_step2():
             current_app.logger.error(f'AI scoring failed: {e}')
             for task in assessment.tasks.all():
                 task.risk_score = task.id % 10 + 1
+                task.weight = 3
                 task.explanation = 'Auto-generated score.'
             assessment.step = 3
             db.session.commit()
@@ -282,7 +284,8 @@ def summary(assessment_id):
     avg_risk = None
     scored = [t for t in tasks if t.risk_score is not None]
     if scored:
-        avg_risk = sum(t.risk_score for t in scored) / len(scored)
+        weights = [t.weight or 1 for t in scored]
+        avg_risk = sum(t.risk_score * w for t, w in zip(scored, weights)) / sum(weights)
 
     return render_template('assessment/summary.html', assessment=assessment,
                            tasks=tasks, avg_risk=avg_risk, preview_items=preview_items)
@@ -302,7 +305,8 @@ def view_assessment(assessment_id):
     avg_risk = None
     scored = [t for t in tasks if t.risk_score is not None]
     if scored:
-        avg_risk = sum(t.risk_score for t in scored) / len(scored)
+        weights = [t.weight or 1 for t in scored]
+        avg_risk = sum(t.risk_score * w for t, w in zip(scored, weights)) / sum(weights)
 
     return render_template('assessment/detail.html', assessment=assessment,
                            tasks=tasks, roadmap_items=roadmap_items, avg_risk=avg_risk)
@@ -318,8 +322,13 @@ def download_pdf(assessment_id):
         Task.risk_score.desc().nullslast()
     ).all()
     roadmap_items = assessment.roadmap_items.order_by(RoadmapItem.priority).all()
+    scored = [t for t in tasks if t.risk_score is not None]
+    avg_risk = None
+    if scored:
+        weights = [t.weight or 1 for t in scored]
+        avg_risk = sum(t.risk_score * w for t, w in zip(scored, weights)) / sum(weights)
     return render_template('assessment/pdf.html', assessment=assessment,
-                           tasks=tasks, roadmap_items=roadmap_items)
+                           tasks=tasks, roadmap_items=roadmap_items, avg_risk=avg_risk)
 
 
 @assessment_bp.route('/<int:assessment_id>/json')
@@ -342,7 +351,8 @@ def export_json(assessment_id):
             'confidence': assessment.salary_confidence,
         },
         'tasks': [{'description': t.description, 'risk_score': t.risk_score,
-                    'explanation': t.explanation, 'category': t.category}
+                    'explanation': t.explanation, 'category': t.category,
+                    'importance': t.weight or 3}
                   for t in assessment.tasks.all()],
         'roadmap': [{'skill_name': r.skill_name, 'priority': r.priority,
                       'timeline': r.timeline, 'description': r.description,

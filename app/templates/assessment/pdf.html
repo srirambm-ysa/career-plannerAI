@@ -142,18 +142,16 @@
   {% set tasks = assessment.tasks.all() %}
   {% set scored = tasks | selectattr('risk_score', '!=', none) | list %}
 
-  {% if scored %}
-    {% set total = namespace(val=0) %}
-    {% for t in scored %}{% set total.val = total.val + t.risk_score %}{% endfor %}
-    {% set avg = total.val / (scored | length) %}
+  {% if avg_risk is not none %}
     <div class="mb-6 p-4 rounded-lg text-center
-      {% if avg < 4 %}bg-green-50 border border-green-200{% elif avg < 7 %}bg-amber-50 border border-amber-200{% else %}bg-red-50 border border-red-200{% endif %}">
-      <span class="text-sm text-slate-600 font-medium">Average Risk Score:</span>
+      {% if avg_risk < 4 %}bg-green-50 border border-green-200{% elif avg_risk < 7 %}bg-amber-50 border border-amber-200{% else %}bg-red-50 border border-red-200{% endif %}">
+      <span class="text-sm text-slate-600 font-medium">Weighted Risk Score:</span>
       <span class="text-3xl font-bold ml-2
-        {% if avg < 4 %}text-green-700{% elif avg < 7 %}text-amber-600{% else %}text-red-600{% endif %}">
-        {{ '%.1f'|format(avg) }}
+        {% if avg_risk < 4 %}text-green-700{% elif avg_risk < 7 %}text-amber-600{% else %}text-red-600{% endif %}">
+        {{ '%.1f'|format(avg_risk) }}
       </span>
       <span class="text-sm text-slate-500 ml-1">/ 10</span>
+      <div class="text-xs text-slate-400 mt-1">Weighted by task importance to the role</div>
     </div>
   {% endif %}
 
@@ -164,7 +162,8 @@
       <tr>
         <th style="width: 3rem;">Score</th>
         <th>Task</th>
-        <th style="width: 6rem;">Category</th>
+        <th style="width: 5rem;">Category</th>
+        <th style="width: 3.5rem;">Importance</th>
       </tr>
     </thead>
     <tbody>
@@ -190,6 +189,9 @@
           {% else %}
             <span class="text-slate-300 text-xs">&mdash;</span>
           {% endif %}
+        </td>
+        <td class="align-middle text-center">
+          <span class="inline-block px-2 py-0.5 bg-purple-50 text-purple-700 text-xs font-medium rounded">{{ '%.0f'|format(task.weight or 3) }}/5</span>
         </td>
       </tr>
       {% endfor %}

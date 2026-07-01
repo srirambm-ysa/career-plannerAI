@@ -51,14 +51,22 @@ Click **Apply**. Render will:
 
 Open the Render URL in your browser. Register a new account and create an assessment.
 
-## CI/CD
+## Branch Workflow
 
-Every `git push` to `master` triggers an automatic redeploy on Render.
+Production deploys only from `master`. Work on `dev` branch for day-to-day changes.
 
 ```bash
+# Daily work (no production deploy)
+git checkout dev
+# ... make changes ...
 git add .
-git commit -m "your changes"
-git push
+git commit -m "description"
+git push              # → pushes to dev, Render ignores this
+
+# When ready to ship to production
+git checkout master
+git merge dev
+git push              # → pushes to master, Render auto-deploys
 ```
 
 ## Notes
